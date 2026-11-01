@@ -659,7 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const statTotal = document.getElementById('statTotal');
 
     // Firebase Realtime Database Direct Sync
-    const FIREBASE_DB_URL = "https://attendance-90920-default-rtdb.asia-southeast1.firebasedatabase.app";
+    const FIREBASE_DB_URL = "{{ firebase_database_url or 'https://asp-attendance-default-rtdb.asia-southeast1.firebasedatabase.app' }}";
     let fbClientSecret = localStorage.getItem('attendance_fb_secret') || '';
 
     function getFbUrl(path = '') {

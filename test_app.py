@@ -399,7 +399,7 @@ class TestAttendanceApp(unittest.TestCase):
         """Firebase configuration and export endpoints return correct database URL."""
         res_cfg = self.client.get('/api/firebase/config')
         self.assertEqual(res_cfg.status_code, 200)
-        self.assertIn('attendance-90920-default-rtdb', res_cfg.get_json()['config']['databaseURL'])
+        self.assertIn('asp-attendance-default-rtdb', res_cfg.get_json()['config']['databaseURL'])
 
         res_exp = self.client.get('/api/firebase/export')
         self.assertEqual(res_exp.status_code, 200)

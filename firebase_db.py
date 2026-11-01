@@ -7,7 +7,7 @@ import threading
 
 FIREBASE_DATABASE_URL = os.environ.get(
     'FIREBASE_DATABASE_URL', 
-    'https://attendance-90920-default-rtdb.asia-southeast1.firebasedatabase.app'
+    'https://asp-attendance-default-rtdb.asia-southeast1.firebasedatabase.app'
 ).rstrip('/')
 
 FIREBASE_AUTH_SECRET = os.environ.get('FIREBASE_AUTH_SECRET', '')
