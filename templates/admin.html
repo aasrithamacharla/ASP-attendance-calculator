@@ -1025,10 +1025,18 @@ document.addEventListener('DOMContentLoaded', () => {
     async function syncAdminUiWithFirebase() {
         try {
             const res = await fetch('https://asp-attendance-default-rtdb.asia-southeast1.firebasedatabase.app/employees.json', { method: 'GET', mode: 'cors' });
+            if (!res.ok) {
+                console.warn('Firebase employees fetch failed with status:', res.status);
+                return;
+            }
             const fbEmps = await res.json();
-            const validEmpIds = new Set(fbEmps ? Object.keys(fbEmps).map(k => k.replace(/^emp_/, '')) : []);
+            if (fbEmps && fbEmps.error) {
+                console.warn('Firebase error:', fbEmps.error);
+                return;
+            }
+            const validEmpIds = new Set((fbEmps && typeof fbEmps === 'object') ? Object.keys(fbEmps).map(k => k.replace(/^emp_/, '')) : []);
 
-            document.querySelectorAll('#payrollTableBody tr').forEach(row => {
+            document.querySelectorAll('#payrollTableBody tr.payroll-row').forEach(row => {
                 const eid = row.getAttribute('data-emp-id');
                 if (eid && !validEmpIds.has(eid)) {
                     row.remove();
@@ -1036,15 +1044,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const wRes = await fetch('https://asp-attendance-default-rtdb.asia-southeast1.firebasedatabase.app/workers.json', { method: 'GET', mode: 'cors' });
-            const fbWorkers = await wRes.json();
-            const validWorkerIds = new Set(fbWorkers ? Object.keys(fbWorkers).map(k => k.replace(/^worker_/, '')) : []);
-
-            document.querySelectorAll('#workersTableBody tr').forEach(row => {
-                const wid = row.getAttribute('data-worker-id');
-                if (wid && !validWorkerIds.has(wid)) {
-                    row.remove();
+            if (wRes.ok) {
+                const fbWorkers = await wRes.json();
+                if (!fbWorkers || !fbWorkers.error) {
+                    const validWorkerIds = new Set((fbWorkers && typeof fbWorkers === 'object') ? Object.keys(fbWorkers).map(k => k.replace(/^worker_/, '')) : []);
+                    document.querySelectorAll('#workersTableBody tr.admin-worker-row').forEach(row => {
+                        const wid = row.getAttribute('data-worker-id');
+                        if (wid && !validWorkerIds.has(wid)) {
+                            row.remove();
+                        }
+                    });
                 }
-            });
+            }
 
             if (typeof updateOverallTotals === 'function') updateOverallTotals();
         } catch (e) {}

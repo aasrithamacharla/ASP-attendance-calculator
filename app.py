@@ -69,6 +69,16 @@ def sync_from_firebase():
     try:
         from firebase_db import _firebase_request
         fb_data = _firebase_request('/', method='GET', timeout=3)
+        if fb_data is None or fb_data == {}:
+            # Firebase database is empty: clear all local tables so local strictly mirrors empty Firebase
+            with get_db() as conn:
+                conn.execute("DELETE FROM employees")
+                conn.execute("DELETE FROM workers")
+                conn.execute("DELETE FROM attendance_records")
+                conn.execute("DELETE FROM payroll_payments")
+                conn.commit()
+            return
+
         if isinstance(fb_data, dict) and 'error' not in fb_data:
             with get_db() as conn:
                 conn.execute("DELETE FROM employees")
