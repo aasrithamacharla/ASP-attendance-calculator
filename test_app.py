@@ -37,7 +37,7 @@ class TestAttendanceApp(unittest.TestCase):
         # 4. Now accessing '/' renders dashboard
         res_dash = fresh_client.get('/')
         self.assertEqual(res_dash.status_code, 200)
-        self.assertIn(b'Attendance Dashboard', res_dash.data)
+        self.assertIn(b'ASP Attendance', res_dash.data)
         self.assertIn(b'Workers', res_dash.data)
 
         # 5. Lock website
