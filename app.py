@@ -30,6 +30,25 @@ app = Flask(
 )
 app.secret_key = os.environ.get('SECRET_KEY', 'attendance-portal-secret-key-2026-secure')
 
+SITE_PIN = os.environ.get('SITE_PIN', '5473')
+
+@app.before_request
+def check_site_access():
+    # In testing mode without explicit enforce header, allow
+    if app.config.get('TESTING') and not request.headers.get('X-Test-Enforce-Auth'):
+        return
+    # Allow static assets and favicon
+    if request.path.startswith('/static') or request.path == '/favicon.ico':
+        return
+    # Allow login, lock, and verification endpoints, as well as root
+    if request.path in ['/', '/login', '/auth', '/api/site/verify-pin', '/api/login', '/api/admin/login', '/lock', '/logout']:
+        return
+    # Enforce PIN unlock for any other protected endpoints
+    if not session.get('site_unlocked'):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.path.startswith('/api/'):
+            return jsonify({'success': False, 'message': 'PIN authentication required.', 'redirect': '/'}), 401
+        return redirect(url_for('dashboard'))
+
 def to_dmy(val):
     """Convert YYYY-MM-DD or date object to DD/MM/YYYY."""
     if not val:
@@ -147,9 +166,23 @@ def sync_from_firebase():
     except Exception:
         pass
 
-# 1. Main Dashboard: Direct Access
-@app.route('/')
+# 1. Main Dashboard: Protected by Security PIN Gate
+@app.route('/', methods=['GET', 'POST'])
 def dashboard():
+    error = None
+    if request.method == 'POST':
+        pin = (request.form.get('pin') or request.form.get('password') or '').strip()
+        if pin == SITE_PIN:
+            session['site_unlocked'] = True
+            if request.form.get('remember'):
+                session.permanent = True
+            return redirect(url_for('dashboard'))
+        else:
+            error = 'Incorrect Security PIN. Please try again.'
+
+    if not session.get('site_unlocked'):
+        return render_template('auth.html', error=error)
+
     sync_from_firebase()
     selected_date = (request.args.get('date') or datetime.date.today().strftime('%Y-%m-%d')).strip()
     
@@ -213,10 +246,38 @@ def dashboard():
         firebase_database_url=FIREBASE_DATABASE_URL
     )
 
-@app.route('/auth')
-@app.route('/login')
+@app.route('/lock', endpoint='lock')
+@app.route('/logout', endpoint='logout')
+def lock_site():
+    session.pop('site_unlocked', None)
+    session.pop('is_admin', None)
+    return redirect(url_for('dashboard'))
+
+@app.route('/auth', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def legacy_auth_redirect():
     return redirect(url_for('dashboard'))
+
+@app.route('/api/site/verify-pin', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
+def verify_site_pin():
+    data = request.get_json(silent=True) or request.form or {}
+    entered_pin = str(data.get('pin') or data.get('password') or '').strip()
+    
+    if entered_pin == SITE_PIN:
+        session['site_unlocked'] = True
+        if data.get('remember'):
+            session.permanent = True
+        return jsonify({
+            'success': True,
+            'message': 'PIN verified successfully!',
+            'redirect': url_for('dashboard')
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'message': 'Incorrect Security PIN. Please try again.'
+        }), 401
 
 # 2. Record or Deselect daily attendance for an employee
 @app.route('/api/attendance', methods=['POST'])
