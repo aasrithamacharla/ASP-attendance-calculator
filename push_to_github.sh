@@ -21,7 +21,7 @@ fi
 git branch -M main 2>/dev/null || true
 
 # 3. Configure remote origin
-TARGET_URL="https://github.com/aasrithamacharla/attendance-calculator.git"
+TARGET_URL="https://github.com/aasrithamacharla/ASP-attendance-calculator.git"
 if git remote | grep -q "^origin$"; then
     git remote set-url origin "$TARGET_URL"
 else
@@ -47,7 +47,7 @@ if git push -u origin main; then
     echo ""
     echo "================================================================"
     echo " [✓] SUCCESS! Your code is now live on GitHub:"
-    echo "     https://github.com/aasrithamacharla/attendance-calculator"
+    echo "     https://github.com/aasrithamacharla/ASP-attendance-calculator"
     echo "================================================================"
     exit 0
 fi
@@ -61,7 +61,7 @@ if git pull origin main --rebase --allow-unrelated-histories 2>/dev/null; then
         echo ""
         echo "================================================================"
         echo " [✓] SUCCESS! Your code is now live on GitHub:"
-        echo "     https://github.com/aasrithamacharla/attendance-calculator"
+        echo "     https://github.com/aasrithamacharla/ASP-attendance-calculator"
         echo "================================================================"
         exit 0
     fi
