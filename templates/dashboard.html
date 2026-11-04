@@ -754,15 +754,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (needsSync) {
-                try {
-                    await fetch('/api/firebase/client-sync', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ employees: fbEmps, workers: fbWorkers || {} })
-                    });
-                } catch (e) {}
-                window.location.reload();
-                return;
+                const syncSig = Object.keys(fbEmps || {}).sort().join(',') + '|' + Object.keys(fbWorkers || {}).sort().join(',');
+                const lastSig = sessionStorage.getItem('last_dash_fb_sync_sig');
+                const lastTime = parseInt(sessionStorage.getItem('last_dash_fb_sync_time') || '0', 10);
+                const now = Date.now();
+
+                // Loop breaker: prevent reloading if already synced recently or with the same data signature
+                if (lastSig === syncSig || (now - lastTime < 10000)) {
+                    console.warn('[Dashboard Sync] Reload loop prevented for signature:', syncSig);
+                } else {
+                    try {
+                        const syncRes = await fetch('/api/firebase/client-sync', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ employees: fbEmps, workers: fbWorkers || {} })
+                        });
+                        const syncData = await syncRes.json();
+                        if (syncRes.ok && syncData.success) {
+                            sessionStorage.setItem('last_dash_fb_sync_sig', syncSig);
+                            sessionStorage.setItem('last_dash_fb_sync_time', String(now));
+                            window.location.reload();
+                            return;
+                        } else {
+                            console.warn('[Dashboard Sync] client-sync returned error:', syncData);
+                        }
+                    } catch (e) {
+                        console.warn('[Dashboard Sync] Network error during client-sync:', e);
+                    }
+                }
             }
 
             if (fbEmps && typeof fbEmps === 'object' && !fbEmps.error && Object.keys(fbEmps).length > 0) {
